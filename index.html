@@ -55,12 +55,12 @@
     #file-list li {
       background-color: #1e1e1e;
       margin: 10px 0;
-      padding: 10px;
+      padding: 15px;
       border-radius: 5px;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 15px;
     }
     #file-list a {
       color: #ff9800;
@@ -73,15 +73,19 @@
     .file-meta {
       font-size: 14px;
       color: #ccc;
+      margin-top: 5px;
     }
     .delete-btn {
       background-color: #ff4d4d;
       color: #fff;
       border: none;
-      padding: 5px 10px;
+      padding: 3px 8px;  /* Ajustado para diminuir ainda mais o botão */
       border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 12px; /* Menor tamanho de fonte */
+      height: 25px;    /* Ajustado para altura menor */
+      min-width: 60px; /* Ajustado para o botão ter uma largura menor */
+      margin-top: 10px;
     }
     .delete-btn:hover {
       background-color: #e63939;
@@ -89,6 +93,22 @@
     .warning {
       color: #ff4d4d;
       font-weight: bold;
+    }
+    .preview {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      margin-right: 15px;
+    }
+    .preview-pdf {
+      width: 60px;
+      height: 60px;
+      background-color: #ff9800;
+      text-align: center;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   </style>
 </head>
@@ -127,6 +147,24 @@
       storedFiles.forEach((file, index) => {
         const li = document.createElement("li");
         
+        // Prévia do arquivo (Imagem ou PDF)
+        let preview;
+        const fileType = file.name.split('.').pop().toLowerCase();
+
+        if (fileType === 'jpg' || fileType === 'jpeg' || fileType === 'png' || fileType === 'gif') {
+          preview = document.createElement("img");
+          preview.src = file.content;
+          preview.className = "preview";
+        } else if (fileType === 'pdf') {
+          preview = document.createElement("div");
+          preview.className = "preview-pdf";
+          preview.textContent = "PDF";
+        } else {
+          preview = document.createElement("div");
+          preview.textContent = "Prévia não disponível";
+          preview.className = "preview-pdf";
+        }
+
         // Link para o arquivo
         const link = document.createElement("a");
         link.href = file.content;
@@ -158,6 +196,7 @@
         deleteBtn.onclick = () => deleteFile(index);
 
         // Monta o item da lista
+        li.appendChild(preview);  // Adiciona a prévia do arquivo
         li.appendChild(link);
         li.appendChild(meta);
         li.appendChild(deleteBtn);
