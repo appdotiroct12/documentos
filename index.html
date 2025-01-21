@@ -43,4 +43,55 @@
     <button id="upload-button" type="button">Fazer Upload</button>
   </form>
 
-  <h2>A
+  <h2>Arquivos Enviados:</h2>
+  <ul id="file-list"></ul>
+
+  <script>
+    const fileInput = document.getElementById("file-input");
+    const uploadButton = document.getElementById("upload-button");
+    const fileList = document.getElementById("file-list");
+
+    // Carrega os arquivos salvos no LocalStorage ao carregar a página
+    function loadFiles() {
+      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+      fileList.innerHTML = "";
+      storedFiles.forEach(file => {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = file.content;
+        link.download = file.name;
+        link.textContent = file.name;
+        li.appendChild(link);
+        fileList.appendChild(li);
+      });
+    }
+
+    // Salva arquivos no LocalStorage
+    function saveFiles(files) {
+      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          storedFiles.push({ name: file.name, content: e.target.result });
+          localStorage.setItem("userFiles", JSON.stringify(storedFiles));
+          loadFiles();
+        };
+        reader.readAsDataURL(file); // Converte o arquivo em base64
+      });
+    }
+
+    // Evento de clique no botão de upload
+    uploadButton.addEventListener("click", () => {
+      if (fileInput.files.length > 0) {
+        saveFiles(Array.from(fileInput.files));
+        fileInput.value = ""; // Limpa o input
+      } else {
+        alert("Por favor, selecione pelo menos um arquivo.");
+      }
+    });
+
+    // Carrega os arquivos ao iniciar
+    loadFiles();
+  </script>
+</body>
+</html>
