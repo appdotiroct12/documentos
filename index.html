@@ -49,6 +49,8 @@
       background-color: #e68a00;
     }
     #file-list {
+      max-height: 400px; /* Adiciona limite de altura */
+      overflow-y: auto;  /* Adiciona barra de rolagem vertical */
       list-style: none;
       padding: 0;
     }
@@ -79,12 +81,11 @@
       background-color: #ff4d4d;
       color: #fff;
       border: none;
-      padding: 3px 8px;  /* Ajustado para diminuir ainda mais o botão */
+      padding: 5px 10px;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 12px; /* Menor tamanho de fonte */
-      height: 25px;    /* Ajustado para altura menor */
-      min-width: 60px; /* Ajustado para o botão ter uma largura menor */
+      font-size: 12px;
+      height: 30px;
       margin-top: 10px;
     }
     .delete-btn:hover {
@@ -146,7 +147,7 @@
 
       storedFiles.forEach((file, index) => {
         const li = document.createElement("li");
-        
+
         // Prévia do arquivo (Imagem ou PDF)
         let preview;
         const fileType = file.name.split('.').pop().toLowerCase();
@@ -196,7 +197,7 @@
         deleteBtn.onclick = () => deleteFile(index);
 
         // Monta o item da lista
-        li.appendChild(preview);  // Adiciona a prévia do arquivo
+        li.appendChild(preview);
         li.appendChild(link);
         li.appendChild(meta);
         li.appendChild(deleteBtn);
@@ -226,9 +227,9 @@
     // Função para excluir arquivo
     function deleteFile(index) {
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
-      storedFiles.splice(index, 1); // Remove o arquivo pelo índice
+      storedFiles.splice(index, 1);
       localStorage.setItem("userFiles", JSON.stringify(storedFiles));
-      loadFiles(); // Atualiza a lista
+      loadFiles();
     }
 
     // Evento para o botão de upload
@@ -237,9 +238,9 @@
       const expiryDate = expiryDateInput.value;
       if (fileInput.files.length > 0) {
         saveFiles(Array.from(fileInput.files), docName, expiryDate);
-        fileInput.value = ""; // Limpa o input
-        docNameInput.value = ""; // Limpa o nome do documento
-        expiryDateInput.value = ""; // Limpa a data
+        fileInput.value = "";
+        docNameInput.value = "";
+        expiryDateInput.value = "";
       } else {
         alert("Por favor, selecione pelo menos um arquivo.");
       }
