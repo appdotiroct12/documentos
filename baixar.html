@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acessar Arquivos Armazenados</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #file-list {
+      margin-top: 20px;
+    }
+    button {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Arquivos Armazenados</h1>
+  <h2>Lista de Arquivos:</h2>
+  <ul id="file-list"></ul>
+
+  <script>
+    const fileList = document.getElementById("file-list");
+
+    // Carrega arquivos do localStorage ao carregar a página
+    function loadFiles() {
+      const storedFiles = JSON.parse(localStorage.getItem("files")) || [];
+      fileList.innerHTML = ""; // Limpa a lista antes de recarregar
+
+      if (storedFiles.length === 0) {
+        fileList.innerHTML = "<p>Nenhum arquivo armazenado.</p>";
+        return;
+      }
+
+      storedFiles.forEach((file, index) => {
+        const li = document.createElement("li");
+
+        // Nome do arquivo
+        li.textContent = file.name;
+
+        // Botão para baixar o arquivo
+        const downloadButton = document.createElement("button");
+        downloadButton.textContent = "Baixar";
+        downloadButton.addEventListener("click", () => {
+          const a = document.createElement("a");
+          a.href = file.content;
+          a.download = file.name;
+          a.click();
+        });
+
+        // Botão para excluir o arquivo
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Excluir";
+        deleteButton.addEventListener("click", () => {
+          deleteFile(index);
+        });
+
+        li.appendChild(downloadButton);
+        li.appendChild(deleteButton);
+        fileList.appendChild(li);
+      });
+    }
+
+    // Excluir um arquivo do localStorage
+    function deleteFile(index) {
+      const storedFiles = JSON.parse(localStorage.getItem("files")) || [];
+      storedFiles.splice(index, 1); // Remove o arquivo pelo índice
+      localStorage.setItem("files", JSON.stringify(storedFiles)); // Atualiza o localStorage
+      loadFiles(); // Recarrega a lista
+    }
+
+    // Carrega os arquivos armazenados ao iniciar
+    loadFiles();
+  </script>
+</body>
+</html>
