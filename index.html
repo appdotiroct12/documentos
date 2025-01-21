@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload e Exibição de Arquivos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    #file-list {
+      list-style: none;
+      padding: 0;
+    }
+    #file-list li {
+      margin: 5px 0;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload de Arquivos</h1>
+  <form id="upload-form">
+    <label for="file-input">Selecione um arquivo:</label>
+    <input id="file-input" type="file" multiple />
+    <button id="upload-button" type="button">Fazer Upload</button>
+  </form>
+
+  <h2>A
