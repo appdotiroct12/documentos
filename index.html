@@ -58,6 +58,9 @@
       padding: 10px;
       border-radius: 5px;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     #file-list a {
       color: #ff9800;
@@ -70,6 +73,18 @@
     .file-meta {
       font-size: 14px;
       color: #ccc;
+    }
+    .delete-btn {
+      background-color: #ff4d4d;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .delete-btn:hover {
+      background-color: #e63939;
     }
     .warning {
       color: #ff4d4d;
@@ -109,13 +124,16 @@
 
       const today = new Date();
 
-      storedFiles.forEach(file => {
+      storedFiles.forEach((file, index) => {
         const li = document.createElement("li");
+        
+        // Link para o arquivo
         const link = document.createElement("a");
         link.href = file.content;
         link.download = file.name;
         link.textContent = file.docName || file.name;
 
+        // Metadados do arquivo
         const meta = document.createElement("div");
         meta.className = "file-meta";
 
@@ -133,8 +151,16 @@
           meta.textContent = `Vencimento: ${file.expiryDate || "Não informado"}`;
         }
 
+        // Botão de exclusão
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "Excluir";
+        deleteBtn.onclick = () => deleteFile(index);
+
+        // Monta o item da lista
         li.appendChild(link);
         li.appendChild(meta);
+        li.appendChild(deleteBtn);
         fileList.appendChild(li);
       });
     }
@@ -156,6 +182,14 @@
         };
         reader.readAsDataURL(file); // Converte o arquivo em base64
       });
+    }
+
+    // Função para excluir arquivo
+    function deleteFile(index) {
+      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+      storedFiles.splice(index, 1); // Remove o arquivo pelo índice
+      localStorage.setItem("userFiles", JSON.stringify(storedFiles));
+      loadFiles(); // Atualiza a lista
     }
 
     // Evento para o botão de upload
