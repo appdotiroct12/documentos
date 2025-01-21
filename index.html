@@ -3,76 +3,154 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload e Exibição de Arquivos</title>
+  <title>Gerenciador de Documentos</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f5f5f5;
       margin: 20px;
     }
     h1 {
-      color: #333;
+      color: #ff9800;
+      text-align: center;
     }
     form {
+      background-color: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
       margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    input[type="file"], input[type="date"], input[type="text"] {
+      background-color: #2e2e2e;
+      color: #f5f5f5;
+    }
+    button {
+      background-color: #ff9800;
+      color: #121212;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #e68a00;
     }
     #file-list {
       list-style: none;
       padding: 0;
     }
     #file-list li {
-      margin: 5px 0;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      cursor: pointer;
+      background-color: #1e1e1e;
+      margin: 10px 0;
+      padding: 10px;
       border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     }
-    button:hover {
-      background-color: #45a049;
+    #file-list a {
+      color: #ff9800;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    #file-list a:hover {
+      text-decoration: underline;
+    }
+    .file-meta {
+      font-size: 14px;
+      color: #ccc;
+    }
+    .warning {
+      color: #ff4d4d;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>Upload de Arquivos</h1>
+  <h1>Gerenciador de Documentos</h1>
   <form id="upload-form">
     <label for="file-input">Selecione um arquivo:</label>
     <input id="file-input" type="file" multiple />
+
+    <label for="doc-name">Nome do documento:</label>
+    <input id="doc-name" type="text" placeholder="Digite um nome para o documento" />
+
+    <label for="expiry-date">Data de vencimento:</label>
+    <input id="expiry-date" type="date" />
+
     <button id="upload-button" type="button">Fazer Upload</button>
   </form>
 
-  <h2>Arquivos Enviados:</h2>
+  <h2>Documentos Armazenados:</h2>
   <ul id="file-list"></ul>
 
   <script>
     const fileInput = document.getElementById("file-input");
+    const docNameInput = document.getElementById("doc-name");
+    const expiryDateInput = document.getElementById("expiry-date");
     const uploadButton = document.getElementById("upload-button");
     const fileList = document.getElementById("file-list");
 
-    // Carrega os arquivos salvos no LocalStorage ao carregar a página
+    // Carrega os arquivos do LocalStorage ao carregar a página
     function loadFiles() {
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
       fileList.innerHTML = "";
+
+      const today = new Date();
+
       storedFiles.forEach(file => {
         const li = document.createElement("li");
         const link = document.createElement("a");
         link.href = file.content;
         link.download = file.name;
-        link.textContent = file.name;
+        link.textContent = file.docName || file.name;
+
+        const meta = document.createElement("div");
+        meta.className = "file-meta";
+
+        // Calcula os dias até o vencimento
+        const expiryDate = new Date(file.expiryDate);
+        const timeDiff = expiryDate - today;
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+        // Exibe aviso se o vencimento estiver próximo
+        if (daysRemaining <= 30 && daysRemaining >= 0) {
+          meta.innerHTML = `<span class="warning">Vencimento em ${daysRemaining} dias!</span>`;
+        } else if (daysRemaining < 0) {
+          meta.innerHTML = `<span class="warning">Vencido!</span>`;
+        } else {
+          meta.textContent = `Vencimento: ${file.expiryDate || "Não informado"}`;
+        }
+
         li.appendChild(link);
+        li.appendChild(meta);
         fileList.appendChild(li);
       });
     }
 
     // Salva arquivos no LocalStorage
-    function saveFiles(files) {
+    function saveFiles(files, docName, expiryDate) {
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
       files.forEach(file => {
         const reader = new FileReader();
         reader.onload = function (e) {
-          storedFiles.push({ name: file.name, content: e.target.result });
+          storedFiles.push({
+            name: file.name,
+            content: e.target.result,
+            docName: docName || "Sem nome",
+            expiryDate: expiryDate || "Não informado"
+          });
           localStorage.setItem("userFiles", JSON.stringify(storedFiles));
           loadFiles();
         };
@@ -80,11 +158,15 @@
       });
     }
 
-    // Evento de clique no botão de upload
+    // Evento para o botão de upload
     uploadButton.addEventListener("click", () => {
+      const docName = docNameInput.value;
+      const expiryDate = expiryDateInput.value;
       if (fileInput.files.length > 0) {
-        saveFiles(Array.from(fileInput.files));
+        saveFiles(Array.from(fileInput.files), docName, expiryDate);
         fileInput.value = ""; // Limpa o input
+        docNameInput.value = ""; // Limpa o nome do documento
+        expiryDateInput.value = ""; // Limpa a data
       } else {
         alert("Por favor, selecione pelo menos um arquivo.");
       }
