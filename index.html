@@ -49,8 +49,8 @@
       background-color: #e68a00;
     }
     #file-list {
-      max-height: 400px; /* Adiciona limite de altura */
-      overflow-y: auto;  /* Adiciona barra de rolagem vertical */
+      max-height: 400px;
+      overflow-y: auto;
       list-style: none;
       padding: 0;
     }
@@ -64,42 +64,11 @@
       align-items: center;
       gap: 15px;
     }
-    #file-list a {
-      color: #ff9800;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    #file-list a:hover {
-      text-decoration: underline;
-    }
-    .file-meta {
-      font-size: 14px;
-      color: #ccc;
-      margin-top: 5px;
-    }
-    .delete-btn {
-      background-color: #ff4d4d;
-      color: #fff;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 12px;
-      height: 30px;
-      margin-top: 10px;
-    }
-    .delete-btn:hover {
-      background-color: #e63939;
-    }
-    .warning {
-      color: #ff4d4d;
-      font-weight: bold;
-    }
     .preview {
       width: 60px;
       height: 60px;
       object-fit: cover;
-      margin-right: 15px;
+      cursor: pointer;
     }
     .preview-pdf {
       width: 60px;
@@ -110,6 +79,38 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      cursor: pointer;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal img, .modal iframe {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 10px;
+    }
+    .modal .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .modal .close-btn:hover {
+      background-color: #e63939;
     }
   </style>
 </head>
@@ -131,122 +132,91 @@
   <h2>Documentos Armazenados:</h2>
   <ul id="file-list"></ul>
 
+  <!-- Modal para visualização -->
+  <div id="modal" class="modal">
+    <button class="close-btn" onclick="closeModal()">×</button>
+    <img id="modal-image" src="" alt="Visualização" />
+    <iframe id="modal-pdf" style="display: none;" frameborder="0"></iframe>
+  </div>
+
   <script>
     const fileInput = document.getElementById("file-input");
     const docNameInput = document.getElementById("doc-name");
     const expiryDateInput = document.getElementById("expiry-date");
     const uploadButton = document.getElementById("upload-button");
     const fileList = document.getElementById("file-list");
+    const modal = document.getElementById("modal");
+    const modalImage = document.getElementById("modal-image");
+    const modalPdf = document.getElementById("modal-pdf");
 
-    // Carrega os arquivos do LocalStorage ao carregar a página
     function loadFiles() {
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
       fileList.innerHTML = "";
 
-      const today = new Date();
-
       storedFiles.forEach((file, index) => {
         const li = document.createElement("li");
 
-        // Prévia do arquivo (Imagem ou PDF)
+        // Prévia do arquivo
         let preview;
         const fileType = file.name.split('.').pop().toLowerCase();
 
-        if (fileType === 'jpg' || fileType === 'jpeg' || fileType === 'png' || fileType === 'gif') {
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileType)) {
           preview = document.createElement("img");
           preview.src = file.content;
           preview.className = "preview";
+          preview.onclick = () => openModal(file.content, "image");
         } else if (fileType === 'pdf') {
           preview = document.createElement("div");
           preview.className = "preview-pdf";
           preview.textContent = "PDF";
+          preview.onclick = () => openModal(file.content, "pdf");
         } else {
           preview = document.createElement("div");
           preview.textContent = "Prévia não disponível";
           preview.className = "preview-pdf";
         }
 
-        // Link para o arquivo
-        const link = document.createElement("a");
-        link.href = file.content;
-        link.download = file.name;
-        link.textContent = file.docName || file.name;
-
-        // Metadados do arquivo
-        const meta = document.createElement("div");
-        meta.className = "file-meta";
-
-        // Calcula os dias até o vencimento
-        const expiryDate = new Date(file.expiryDate);
-        const timeDiff = expiryDate - today;
-        const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-        // Exibe aviso se o vencimento estiver próximo
-        if (daysRemaining <= 30 && daysRemaining >= 0) {
-          meta.innerHTML = `<span class="warning">Vencimento em ${daysRemaining} dias!</span>`;
-        } else if (daysRemaining < 0) {
-          meta.innerHTML = `<span class="warning">Vencido!</span>`;
-        } else {
-          meta.textContent = `Vencimento: ${file.expiryDate || "Não informado"}`;
-        }
-
-        // Botão de exclusão
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "delete-btn";
-        deleteBtn.textContent = "Excluir";
-        deleteBtn.onclick = () => deleteFile(index);
-
-        // Monta o item da lista
         li.appendChild(preview);
-        li.appendChild(link);
-        li.appendChild(meta);
-        li.appendChild(deleteBtn);
         fileList.appendChild(li);
       });
     }
 
-    // Salva arquivos no LocalStorage
-    function saveFiles(files, docName, expiryDate) {
+    function openModal(content, type) {
+      if (type === "image") {
+        modalImage.src = content;
+        modalImage.style.display = "block";
+        modalPdf.style.display = "none";
+      } else if (type === "pdf") {
+        modalPdf.src = content;
+        modalPdf.style.display = "block";
+        modalImage.style.display = "none";
+      }
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+      modalImage.src = "";
+      modalPdf.src = "";
+    }
+
+    uploadButton.addEventListener("click", () => {
+      const files = Array.from(fileInput.files);
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
-      files.forEach(file => {
+
+      files.forEach((file) => {
         const reader = new FileReader();
-        reader.onload = function (e) {
-          storedFiles.push({
-            name: file.name,
-            content: e.target.result,
-            docName: docName || "Sem nome",
-            expiryDate: expiryDate || "Não informado"
-          });
+        reader.onload = () => {
+          storedFiles.push({ name: file.name, content: reader.result });
           localStorage.setItem("userFiles", JSON.stringify(storedFiles));
           loadFiles();
         };
-        reader.readAsDataURL(file); // Converte o arquivo em base64
+        reader.readAsDataURL(file);
       });
-    }
 
-    // Função para excluir arquivo
-    function deleteFile(index) {
-      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
-      storedFiles.splice(index, 1);
-      localStorage.setItem("userFiles", JSON.stringify(storedFiles));
-      loadFiles();
-    }
-
-    // Evento para o botão de upload
-    uploadButton.addEventListener("click", () => {
-      const docName = docNameInput.value;
-      const expiryDate = expiryDateInput.value;
-      if (fileInput.files.length > 0) {
-        saveFiles(Array.from(fileInput.files), docName, expiryDate);
-        fileInput.value = "";
-        docNameInput.value = "";
-        expiryDateInput.value = "";
-      } else {
-        alert("Por favor, selecione pelo menos um arquivo.");
-      }
+      fileInput.value = "";
     });
 
-    // Carrega os arquivos ao iniciar
     loadFiles();
   </script>
 </body>
