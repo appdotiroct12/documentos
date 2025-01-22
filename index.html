@@ -20,7 +20,6 @@
       padding: 20px;
       border-radius: 10px;
       margin-bottom: 20px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
     label {
       display: block;
@@ -49,8 +48,6 @@
       background-color: #e68a00;
     }
     #file-list {
-      max-height: 400px;
-      overflow-y: auto;
       list-style: none;
       padding: 0;
     }
@@ -59,7 +56,6 @@
       margin: 10px 0;
       padding: 15px;
       border-radius: 5px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
       gap: 15px;
@@ -74,12 +70,20 @@
       width: 60px;
       height: 60px;
       background-color: #ff9800;
-      text-align: center;
       color: white;
       display: flex;
       justify-content: center;
       align-items: center;
+      font-weight: bold;
       cursor: pointer;
+    }
+    .red {
+      color: #ff4d4d;
+      font-weight: bold;
+    }
+    .warning {
+      color: #ff9800;
+      font-weight: bold;
     }
     .modal {
       display: none;
@@ -88,7 +92,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
+      background-color: rgba(0, 0, 0, 0.9);
       justify-content: center;
       align-items: center;
     }
@@ -136,7 +140,7 @@
   <div id="modal" class="modal">
     <button class="close-btn" onclick="closeModal()">×</button>
     <img id="modal-image" src="" alt="Visualização" />
-    <iframe id="modal-pdf" style="display: none;" frameborder="0"></iframe>
+    <iframe id="modal-pdf" frameborder="0" style="display: none;"></iframe>
   </div>
 
   <script>
@@ -149,38 +153,43 @@
     const modalImage = document.getElementById("modal-image");
     const modalPdf = document.getElementById("modal-pdf");
 
+    // Carregar arquivos do localStorage
     function loadFiles() {
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
       fileList.innerHTML = "";
 
+      if (storedFiles.length === 0) {
+        fileList.innerHTML = "<li>Nenhum documento armazenado.</li>";
+        return;
+      }
+
       storedFiles.forEach((file, index) => {
         const li = document.createElement("li");
+        const fileType = file.content.split(";")[0].split(":")[1];
 
-        // Prévia do arquivo
-        let preview;
-        const fileType = file.name.split('.').pop().toLowerCase();
+        const preview = fileType.includes("image") ? `<img src="${file.content}" class="preview" onclick="openModal('${file.content}', 'image')" />` 
+          : fileType.includes("pdf") ? `<div class="preview-pdf" onclick="openModal('${file.content}', 'pdf')">PDF</div>` 
+          : "Sem prévia";
 
-        if (['jpg', 'jpeg', 'png', 'gif'].includes(fileType)) {
-          preview = document.createElement("img");
-          preview.src = file.content;
-          preview.className = "preview";
-          preview.onclick = () => openModal(file.content, "image");
-        } else if (fileType === 'pdf') {
-          preview = document.createElement("div");
-          preview.className = "preview-pdf";
-          preview.textContent = "PDF";
-          preview.onclick = () => openModal(file.content, "pdf");
-        } else {
-          preview = document.createElement("div");
-          preview.textContent = "Prévia não disponível";
-          preview.className = "preview-pdf";
-        }
+        const expiryDate = new Date(file.expiryDate);
+        const today = new Date();
+        const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+        const expiryClass = diffDays <= 0 ? "red" : diffDays <= 60 ? "warning" : "";
+        const expiryMessage = diffDays <= 0 ? "(Vencido)" : diffDays <= 60 ? "(Vence em breve)" : "";
 
-        li.appendChild(preview);
+        li.innerHTML = `
+          ${preview}
+          <div>
+            <a href="${file.content}" download="${file.name}" style="color: #ff9800;">${file.name}</a><br>
+            <strong>Data de vencimento:</strong> <span class="${expiryClass}">${file.expiryDate} ${expiryMessage}</span><br>
+            <button onclick="deleteFile(${index})">Excluir</button>
+          </div>
+        `;
         fileList.appendChild(li);
       });
     }
 
+    // Modal para visualização
     function openModal(content, type) {
       if (type === "image") {
         modalImage.src = content;
@@ -200,14 +209,29 @@
       modalPdf.src = "";
     }
 
+    // Excluir arquivo
+    function deleteFile(index) {
+      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+      storedFiles.splice(index, 1);
+      localStorage.setItem("userFiles", JSON.stringify(storedFiles));
+      loadFiles();
+    }
+
+    // Upload de arquivos
     uploadButton.addEventListener("click", () => {
       const files = Array.from(fileInput.files);
       const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+      const docName = docNameInput.value || "Documento sem nome";
+      const expiryDate = expiryDateInput.value || "Não definida";
 
       files.forEach((file) => {
         const reader = new FileReader();
         reader.onload = () => {
-          storedFiles.push({ name: file.name, content: reader.result });
+          storedFiles.push({
+            name: docName,
+            expiryDate: expiryDate,
+            content: reader.result
+          });
           localStorage.setItem("userFiles", JSON.stringify(storedFiles));
           loadFiles();
         };
@@ -215,8 +239,11 @@
       });
 
       fileInput.value = "";
+      docNameInput.value = "";
+      expiryDateInput.value = "";
     });
 
+    // Carregar arquivos ao iniciar
     loadFiles();
   </script>
 </body>
