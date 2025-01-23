@@ -153,9 +153,23 @@
     const modalImage = document.getElementById("modal-image");
     const modalPdf = document.getElementById("modal-pdf");
 
+    let storedFiles = [];
+
     // Carregar arquivos do localStorage
     function loadFiles() {
-      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+      try {
+        storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+        renderFileList();
+      } catch (e) {
+        console.error("Erro ao carregar arquivos:", e);
+        storedFiles = [];
+        localStorage.setItem("userFiles", JSON.stringify(storedFiles));
+        renderFileList();
+      }
+    }
+
+    // Renderizar lista de arquivos
+    function renderFileList() {
       fileList.innerHTML = "";
 
       if (storedFiles.length === 0) {
@@ -167,15 +181,23 @@
         const li = document.createElement("li");
         const fileType = file.content.split(";")[0].split(":")[1];
 
-        const preview = fileType.includes("image") ? `<img src="${file.content}" class="preview" onclick="openModal('${file.content}', 'image')" />` 
-          : fileType.includes("pdf") ? `<div class="preview-pdf" onclick="openModal('${file.content}', 'pdf')">PDF</div>` 
+        const preview = fileType.includes("image")
+          ? `<img src="${file.content}" class="preview" onclick="openModal('${file.content}', 'image')" />`
+          : fileType.includes("pdf")
+          ? `<div class="preview-pdf" onclick="openModal('${file.content}', 'pdf')">PDF</div>`
           : "Sem prévia";
 
         const expiryDate = new Date(file.expiryDate);
         const today = new Date();
         const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-        const expiryClass = diffDays <= 0 ? "red" : diffDays <= 60 ? "warning" : "";
-        const expiryMessage = diffDays <= 0 ? "(Vencido)" : diffDays <= 60 ? "(Vence em breve)" : "";
+        const expiryClass =
+          diffDays <= 0 ? "red" : diffDays <= 60 ? "warning" : "";
+        const expiryMessage =
+          diffDays <= 0
+            ? "(Vencido)"
+            : diffDays <= 60
+            ? "(Vence em breve)"
+            : "";
 
         li.innerHTML = `
           ${preview}
@@ -211,16 +233,14 @@
 
     // Excluir arquivo
     function deleteFile(index) {
-      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
       storedFiles.splice(index, 1);
       localStorage.setItem("userFiles", JSON.stringify(storedFiles));
-      loadFiles();
+      renderFileList();
     }
 
     // Upload de arquivos
     uploadButton.addEventListener("click", () => {
       const files = Array.from(fileInput.files);
-      const storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
       const docName = docNameInput.value || "Documento sem nome";
       const expiryDate = expiryDateInput.value || "Não definida";
 
@@ -233,18 +253,14 @@
             content: reader.result
           });
           localStorage.setItem("userFiles", JSON.stringify(storedFiles));
-          loadFiles();
+          renderFileList();
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file); // Lê o arquivo como base64
       });
-
-      fileInput.value = "";
-      docNameInput.value = "";
-      expiryDateInput.value = "";
     });
 
-    // Carregar arquivos ao iniciar
-    window.onload = loadFiles;
+    // Carregar arquivos ao carregar a página
+    document.addEventListener("DOMContentLoaded", loadFiles);
   </script>
 </body>
 </html>
