@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerenciador de Documentos</title>
+  <title>Gerenciador de Arquivos CAC</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,7 +12,7 @@
       margin: 20px;
     }
     h1 {
-      color: #ff9800;
+      color: #28a745; /* Verde */
       text-align: center;
     }
     form {
@@ -39,13 +39,13 @@
       color: #f5f5f5;
     }
     button {
-      background-color: #ff9800;
+      background-color: #28a745;
       color: #121212;
       font-weight: bold;
       cursor: pointer;
     }
     button:hover {
-      background-color: #e68a00;
+      background-color: #218838;
     }
     #file-list {
       list-style: none;
@@ -64,17 +64,6 @@
       width: 60px;
       height: 60px;
       object-fit: cover;
-      cursor: pointer;
-    }
-    .preview-pdf {
-      width: 60px;
-      height: 60px;
-      background-color: #ff9800;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
       cursor: pointer;
     }
     .red {
@@ -96,7 +85,7 @@
       justify-content: center;
       align-items: center;
     }
-    .modal img, .modal iframe {
+    .modal img {
       max-width: 90%;
       max-height: 90%;
       border-radius: 10px;
@@ -119,10 +108,10 @@
   </style>
 </head>
 <body>
-  <h1>Gerenciador de Documentos</h1>
+  <h1>Gerenciador de Arquivos CAC</h1>
   <form id="upload-form">
     <label for="file-input">Selecione um arquivo:</label>
-    <input id="file-input" type="file" multiple />
+    <input id="file-input" type="file" />
 
     <label for="doc-name">Nome do documento:</label>
     <input id="doc-name" type="text" placeholder="Digite um nome para o documento" />
@@ -136,11 +125,9 @@
   <h2>Documentos Armazenados:</h2>
   <ul id="file-list"></ul>
 
-  <!-- Modal para visualização -->
   <div id="modal" class="modal">
     <button class="close-btn" onclick="closeModal()">×</button>
-    <img id="modal-image" src="" alt="Visualização" />
-    <iframe id="modal-pdf" frameborder="0" style="display: none;"></iframe>
+    <img id="modal-image" src="" alt="Visualização do arquivo" />
   </div>
 
   <script>
@@ -151,82 +138,111 @@
     const fileList = document.getElementById("file-list");
     const modal = document.getElementById("modal");
     const modalImage = document.getElementById("modal-image");
-    const modalPdf = document.getElementById("modal-pdf");
 
-    let storedFiles = JSON.parse(localStorage.getItem("userFiles")) || [];
+    const dbName = "FileManager";
+    let db;
+
+    function initDatabase() {
+      const request = indexedDB.open(dbName, 1);
+
+      request.onerror = (event) => {
+        console.error("Erro ao abrir o IndexedDB:", event.target.error);
+      };
+
+      request.onsuccess = (event) => {
+        db = event.target.result;
+        renderFileList();
+      };
+
+      request.onupgradeneeded = (event) => {
+        db = event.target.result;
+        if (!db.objectStoreNames.contains("files")) {
+          db.createObjectStore("files", { keyPath: "id", autoIncrement: true });
+        }
+      };
+    }
+
+    function addFile(fileData) {
+      const transaction = db.transaction(["files"], "readwrite");
+      const store = transaction.objectStore("files");
+      store.add(fileData);
+      transaction.oncomplete = () => renderFileList();
+    }
+
+    function getFiles(callback) {
+      const transaction = db.transaction(["files"], "readonly");
+      const store = transaction.objectStore("files");
+      const request = store.getAll();
+
+      request.onsuccess = () => callback(request.result);
+    }
+
+    function deleteFile(id) {
+      const transaction = db.transaction(["files"], "readwrite");
+      const store = transaction.objectStore("files");
+      store.delete(id);
+      transaction.oncomplete = () => renderFileList();
+    }
 
     function renderFileList() {
       fileList.innerHTML = "";
-      if (storedFiles.length === 0) {
-        fileList.innerHTML = "<li>Nenhum documento armazenado.</li>";
-        return;
-      }
 
-      storedFiles.forEach((file, index) => {
-        const li = document.createElement("li");
-        const expiryDate = new Date(file.expiryDate);
-        const today = new Date();
-        const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-        const expiryClass = diffDays <= 0 ? "red" : diffDays <= 60 ? "warning" : "";
-        const expiryMessage =
-          diffDays <= 0
-            ? "(Vencido)"
-            : diffDays <= 60
-            ? "(Vence em breve)"
-            : "";
+      getFiles((files) => {
+        if (files.length === 0) {
+          fileList.innerHTML = "<li>Nenhum documento armazenado.</li>";
+          return;
+        }
 
-        li.innerHTML = `
-          <img src="${file.content}" class="preview" onclick="openModal('${file.content}', 'image')" />
-          <div>
-            <strong>${file.name}</strong><br>
-            <span class="${expiryClass}">Vencimento: ${file.expiryDate} ${expiryMessage}</span><br>
-            <button onclick="deleteFile(${index})">Excluir</button>
-          </div>
-        `;
-        fileList.appendChild(li);
+        files.forEach((file) => {
+          const expiryDate = new Date(file.expiryDate);
+          const today = new Date();
+          const daysToExpire = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+          const statusClass = daysToExpire <= 0 ? "red" : daysToExpire <= 60 ? "warning" : "";
+          const statusText = daysToExpire <= 0 ? " (Vencido)" : daysToExpire <= 60 ? " (Vence em breve)" : "";
+
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <img src="${file.content}" class="preview" onclick="openModal('${file.content}')" />
+            <a href="${file.content}" download="${file.name}" style="color: #28a745;">${file.name}</a>
+            <span> - <span class="${statusClass}">${file.expiryDate}${statusText}</span></span>
+            <button onclick="deleteFile(${file.id})">Excluir</button>
+          `;
+          fileList.appendChild(li);
+        });
       });
     }
 
-    function openModal(content, type) {
-      if (type === "image") {
-        modalImage.src = content;
-        modalImage.style.display = "block";
-        modalPdf.style.display = "none";
-      }
+    function openModal(content) {
+      modalImage.src = content;
       modal.style.display = "flex";
     }
 
     function closeModal() {
       modal.style.display = "none";
+      modalImage.src = "";
     }
 
     uploadButton.addEventListener("click", () => {
-      const files = Array.from(fileInput.files);
-      const docName = docNameInput.value || "Documento sem nome";
-      const expiryDate = expiryDateInput.value || "Não definida";
+      const file = fileInput.files[0];
+      const docName = docNameInput.value || file.name;
+      const expiryDate = expiryDateInput.value;
 
-      files.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          storedFiles.push({
-            name: docName,
-            expiryDate: expiryDate,
-            content: reader.result
-          });
-          localStorage.setItem("userFiles", JSON.stringify(storedFiles));
-          renderFileList();
-        };
-        reader.readAsDataURL(file);
-      });
+      if (!file) {
+        alert("Por favor, selecione um arquivo.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        addFile({ name: docName, expiryDate, content: reader.result });
+        fileInput.value = "";
+        docNameInput.value = "";
+        expiryDateInput.value = "";
+      };
+      reader.readAsDataURL(file);
     });
 
-    function deleteFile(index) {
-      storedFiles.splice(index, 1);
-      localStorage.setItem("userFiles", JSON.stringify(storedFiles));
-      renderFileList();
-    }
-
-    renderFileList();
+    document.addEventListener("DOMContentLoaded", initDatabase);
   </script>
 </body>
 </html>
